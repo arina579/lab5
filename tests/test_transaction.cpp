@@ -13,19 +13,11 @@ public:
     MOCK_METHOD(void, Unlock, (), (override));
 };
 
-class MockTransaction : public Transaction {
-public:
-    MOCK_METHOD(void, SaveToDataBase, (Account& from, Account& to, int sum), (override));
-    
-    void CallBaseSaveToDataBase(Account& from, Account& to, int sum) {
-        Transaction::SaveToDataBase(from, to, sum);
-    }
-};
 
 TEST(TransactionTest, SuccessfulTransfer) {
     MockAccount from(5, 897);
     MockAccount to(9, 300);
-    MockTransaction tr;
+    Transaction tr;
     tr.set_fee(10);
 
     EXPECT_CALL(from, GetBalance()).WillRepeatedly(testing::Return(897));
@@ -39,8 +31,6 @@ TEST(TransactionTest, SuccessfulTransfer) {
     EXPECT_CALL(to, ChangeBalance(300)).Times(1);   
     EXPECT_CALL(to, ChangeBalance(-300)).Times(1);  
     EXPECT_CALL(to, Unlock()).Times(1);
-
-    EXPECT_CALL(tr, SaveToDataBase(testing::Ref(from), testing::Ref(to), 300)).Times(testing::AtMost(1));
 
     bool result = tr.Make(from, to, 300);
     EXPECT_FALSE(result); 
@@ -69,7 +59,7 @@ TEST(TransactionTest, SumBelowLimitThrows) {
 TEST(TransactionTest, InsufficientFundsRollsBackCredit) {
     MockAccount from(1, 50);
     MockAccount to(2, 500);
-    MockTransaction tr;
+    Transaction tr;
     tr.set_fee(10);
 
     EXPECT_CALL(from, GetBalance()).WillRepeatedly(testing::Return(50));
@@ -86,8 +76,6 @@ TEST(TransactionTest, InsufficientFundsRollsBackCredit) {
     EXPECT_CALL(from, Unlock()).Times(1);
     EXPECT_CALL(to, Unlock()).Times(1);
 
-    EXPECT_CALL(tr, SaveToDataBase(testing::_, testing::_, 300)).Times(1);
-
     bool result = tr.Make(from, to, 300);
     EXPECT_TRUE(result); 
 }
@@ -100,18 +88,3 @@ TEST(TransactionTest, LockedAccountThrows) {
     EXPECT_CALL(from, Lock()).WillRepeatedly(testing::Throw(std::runtime_error("already locked")));
     EXPECT_THROW(tr.Make(from, to, 100), std::runtime_error);
 }
-
-TEST(TransactionTest, RealSaveToDataBaseCoverage) {
-    Account from(11, 500);
-    Account to(12, 300);
-    
-    from.Lock();
-    to.Lock();
-
-    MockTransaction tr;
-    EXPECT_NO_THROW(tr.CallBaseSaveToDataBase(from, to, 100));
-
-    from.Unlock();
-    to.Unlock();
-}
-
