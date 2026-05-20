@@ -97,3 +97,16 @@ TEST(TransactionTest, LockedAccountThrows) {
     EXPECT_THROW(tr.Make(from, to, 100), std::runtime_error);
 }
 
+TEST(TransactionTest, RealSaveToDataBaseCoverage) {
+    Account from(11, 500);
+    Account to(12, 300);
+    
+    from.Lock();
+    to.Lock();
+
+    Transaction real_tr;
+    EXPECT_NO_THROW(real_tr.SaveToDataBase(from, to, 100));
+
+    from.Unlock();
+    to.Unlock();
+}
