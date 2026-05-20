@@ -16,6 +16,10 @@ public:
 class MockTransaction : public Transaction {
 public:
     MOCK_METHOD(void, SaveToDataBase, (Account& from, Account& to, int sum), (override));
+    
+    void CallBaseSaveToDataBase(Account& from, Account& to, int sum) {
+        Transaction::SaveToDataBase(from, to, sum);
+    }
 };
 
 TEST(TransactionTest, SuccessfulTransfer) {
@@ -104,9 +108,10 @@ TEST(TransactionTest, RealSaveToDataBaseCoverage) {
     from.Lock();
     to.Lock();
 
-    Transaction real_tr;
-    EXPECT_NO_THROW(real_tr.SaveToDataBase(from, to, 100));
+    MockTransaction tr;
+    EXPECT_NO_THROW(tr.CallBaseSaveToDataBase(from, to, 100));
 
     from.Unlock();
     to.Unlock();
 }
+
